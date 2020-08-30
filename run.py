@@ -23,9 +23,40 @@ orangecoin_graphic = '''
 
 login = Login(key = b'[EX\xc8\xd5\xbfI{\xa2$\x05(\xd5\x18\xbf\xc0\x85)\x10nc\x94\x02)j\xdf\xcb\xc4\x94\x9d(\x9e')
 blockchain = Blockchain()
+key = blockchain.generate_keys()
 
 
-if os.path.isfile('data.txt.enc') and os.path.isfile('data2.txt.enc') :
+
+
+def register():
+    while True :
+        os.system('cls')
+        username = str(input("Enter a Username: "))
+        password = str(input("Setting up stuff. Enter a password that will be used for decryption: "))
+        repassword = str(input("Confirm password: "))
+        if password == repassword :
+            break
+        else :
+            print("Passwords Mismatched!")
+    print("__________________________________________________")
+    print("|                                                 |")
+    print("|                   WELCOME                       |")
+    print("|                     TO                          |")
+    print("|                 ORANGECOIN                      |")
+    print("|                                                 |")
+    print(" _________________________________________________")
+    f = open("data.txt", "w+")
+    f.write(password)
+    f.close()
+    login.encrypt_file("data.txt")
+    g = open('data2.txt', 'w+')
+    g.write(username)
+    g.close()
+    login.encrypt_file('data2.txt')
+    print("Please restart the program to complete the setup")
+    time.sleep(15)
+
+def sign_in():
     while True :
         os.system('cls')
         username = str(input('Enter Username: '))
@@ -58,23 +89,20 @@ if os.path.isfile('data.txt.enc') and os.path.isfile('data2.txt.enc') :
             login.encrypt_file("data2.txt")
             print('Invalid username and password')
             sys.exit(1)
-
-    key = blockchain.generate_keys()
-    print(key)
     while True:
         os.system('cls')
         print(orangecoin_graphic)
         print('1. Send OrangeCoin')
         print('2. Mine Pending Transactions')
         print('3. Check Blockchain')
+        print('4. Check Balance')
         print('99. Exit')
         choice = input('> ')
         if choice == '1':
             os.system('cls')
             reciever = input('Who Would You Like To Send To: ')
             amount = input('How Much OrangeCoin are you Sending: ')
-            transaction = Transaction(sender, reciever, amount)
-            blockchain.pendingTransactions.append(transaction)
+            blockchain.add_transaction(sender, reciever, amount, key, key)
             print(blockchain.pendingTransactions)
             print('Sent!')
             print('PRESS ENTER TO GO BACK')
@@ -82,7 +110,6 @@ if os.path.isfile('data.txt.enc') and os.path.isfile('data2.txt.enc') :
         if choice == '2':
             os.system('cls')
             miner = sender
-            blockchain.mine_pending_transactions(miner)
             blockchain.mine_pending_transactions(miner)
             print('')
             print('=============================================B-L-O-C-K-C-H-A-I-N==========================================')
@@ -97,39 +124,20 @@ if os.path.isfile('data.txt.enc') and os.path.isfile('data2.txt.enc') :
             print('Length: ', len(blockchain.chain))
             print('PRESS ENTER TO GO BACK')
             yi = input()
+        if choice == '4':
+            os.system('cls')
+            print('-======BALANCE======-')
+            blockchain.get_balance(sender)
+            print('PRESS ENTER TO GO BACK')
+            input()
         if choice == '99':
             sys.exit(1)
 
+if not os.path.isfile('data.txt.enc') and not os.path.isfile('data2.txt.enc') :
+    register()
 
 
 
 
-
-
-else :
-    while True :
-        os.system('cls')
-        username = str(input("Enter a Username: "))
-        password = str(input("Setting up stuff. Enter a password that will be used for decryption: "))
-        repassword = str(input("Confirm password: "))
-        if password == repassword :
-            break
-        else :
-            print("Passwords Mismatched!")
-    print("__________________________________________________")
-    print("|                                                 |")
-    print("|                   WELCOME                       |")
-    print("|                     TO                          |")
-    print("|                 ORANGECOIN                      |")
-    print("|                                                 |")
-    print(" _________________________________________________")
-    f = open("data.txt", "w+")
-    f.write(password)
-    f.close()
-    login.encrypt_file("data.txt")
-    g = open('data2.txt', 'w+')
-    g.write(username)
-    g.close()
-    login.encrypt_file('data2.txt')
-    print("Please restart the program to complete the setup")
-    time.sleep(15)
+if os.path.isfile('data.txt.enc') and os.path.isfile('data2.txt.enc') :
+    sign_in()
