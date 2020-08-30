@@ -47,7 +47,7 @@ class Blockchain(object):
         return False
     def mine_pending_transactions(self, miner):
         len_pt = len(self.pendingTransactions)
-        if(len_pt < 1):
+        if(len_pt > 1):
             print('Not enough transactions to mine (must be > 1)')
             return False
         else:
