@@ -173,7 +173,7 @@ class Blockchain(object):
         return chain;
 
     def get_balance(self, person):
-        balance = 0
+        balance = 100
         for i in range(1, len(self.chain)):
             block = self.chain[i]
             try:
