@@ -15,14 +15,17 @@ class Blockchain(object):
     def __init__(self):
         self.chain = [self.add_genesis_block()]
         self.pendingTransactions = []
-        self.difficulty = 2
+        self.difficulty = 3
         self.mineReward = 100
         self.blockSize = 10
         self.nodes = set()
 
+
+
+
     def register_node(self, address):
-        parsed_url = urlparse(address)
-        self.nodes.add(parsed_url.netloc)
+        self.nodes.add(address)
+        return True
 
     def resolveConflict(self):
         neigbours = self.nodes
@@ -35,7 +38,7 @@ class Blockchain(object):
                 length = response.json()['length']
                 chain = response.json()['chain']
 
-                if length > max_length and self.isValidCahin():
+                if length > max_length and self.isValidChain():
                     max_length = length
                     newChain = chain
 
@@ -47,25 +50,39 @@ class Blockchain(object):
         return False
     def mine_pending_transactions(self, miner):
         len_pt = len(self.pendingTransactions)
-        if(len_pt < 1):
-            print('Not enough transactions to mine (must be > 1)')
-            return False
-        else:
-            for i in range(0, len_pt, self.blockSize):
-                end = i + self.blockSize
-                if i >= len_pt:
-                    end = len_pt
+        for i in range(0, len_pt, self.blockSize):
+            end = i + self.blockSize
+            if i >= len_pt:
+                end = len_pt
 
-                transaction_slice = self.pendingTransactions[i:end]
-                new_block = Block(transaction_slice, datetime.now().strftime('%m/%d/%Y, %H:%M:%S'), len(self.chain))
-                hash_val = self.get_last_block().hash
-                new_block.prev = hash_val
-                new_block.mine_block(self.difficulty)
-                self.chain.append(new_block)
-            print('Mining Transactions Complete')
-            pay_miner = Transaction("Miner Reward", miner, self.mineReward)
-            self.pendingTransactions = [pay_miner]
+            transaction_slice = self.pendingTransactions[i:end]
+            new_block = Block(transaction_slice, datetime.now().strftime('%m/%d/%Y, %H:%M:%S'), len(self.chain))
+            hash_val = self.get_last_block().hash
+            new_block.prev = hash_val
+            new_block.mine_block(self.difficulty)
+            self.chain.append(new_block)
+        print('Mining Transactions Complete')
+        pay_miner = Transaction("Miner Reward", miner, self.mineReward)
+        self.pendingTransactions = [pay_miner]
         return True
+
+    def get_balance(self, person):
+        balance = 100
+        for i in range(1, len(self.chain)):
+            block = self.chain[i]
+            try:
+                for j in range(0, len(block.transactions)):
+                    transaction = block.transactions[j]
+                    if(transaction.sender == person):
+                        balance -= int(transaction.amount)
+                        print(balance)
+                    if transaction.reciever == person:
+                        balance += int(transaction.amount)
+                        print(balance)
+            except AttributeError:
+                print('No Transaction')
+        return balance + 100
+
 
     def add_transaction(self, sender, reciever, amount, key_string, sender_key):
         key_byte = key_string.encode('ASCII')
@@ -79,12 +96,10 @@ class Blockchain(object):
             return False
         transaction = Transaction(sender, reciever, amount)
         transaction.sign_transaction(key, sender_key)
-
-        if not transaction.is_valid_transaction():
-            print('transaction error 2')
-            return False
         self.pendingTransactions.append(transaction)
         return len(self.chain) + 1
+
+
 
     def get_last_block(self):
         return self.chain[-1]
@@ -121,7 +136,6 @@ class Blockchain(object):
         file_out = open('receiver.pem', 'wb')
         file_out.write(public_key)
 
-        print(public_key.decode('ASCII'))
         return key.publickey().export_key().decode('ASCII')
 
     def chainJSONencode(self) :
@@ -172,20 +186,6 @@ class Blockchain(object):
             chain.append(block);
         return chain;
 
-    def get_balance(self, person):
-        balance = 100
-        for i in range(1, len(self.chain)):
-            block = self.chain[i]
-            try:
-                for j in range(0, len(block.transactions)):
-                    transaction = block.transactions[j]
-                    if(transaction.sender == person):
-                        balance -= transaction.amount
-                    if transaction.reciever == person:
-                        balance += transaction.amount
-            except AttributeError:
-                print('No Transaction')
-        return balance + 100
 
 
 
@@ -255,10 +255,13 @@ class Transaction(object) :
 
     def is_valid_transaction(self):
         if self.hash != self.calculate_hash():
+            print('1')
             return False
         if self.sender == self.reciever:
+            print('2')
             return False
         if self.sender == "Miner Rewards":
+            print('3')
             return True
         if not self.signature or len(self.signature) == 0:
             print("No Signature")
@@ -275,3 +278,4 @@ class Transaction(object) :
         self.signature = 'made'
         print('Made Signature')
         return True
+
