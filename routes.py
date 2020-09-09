@@ -5,7 +5,7 @@ from login import Login
 import time
 import os
 import os.path
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, flash
 from uuid import uuid4
 from argparse import ArgumentParser
 pp = pprint.PrettyPrinter(indent=4)
@@ -44,37 +44,45 @@ def mine() :
     return jsonify(response)
 
 
-
 @app.route('/chain', methods=['GET'])
 def get_full_chain() :
-    response = { 'chain': blockchain.chainJSONencode() }
+    response = {'chain':blockchain.chainJSONencode()}
     return jsonify(response)
 
 @app.route('/register-node', methods=['POST'])
-def register_node():
-    address = input('What address would you like to register node on: ')
-    blockchain.register_node(address)
+def register_nodes():
+    nodes = input('What address would you like to register as a node: ')
+    if nodes is None:
+        return "Error: Please supply a valid list of nodes", 400
+
+
+    blockchain.register_node(nodes)
+
     response = {
-        'message': 'New node has been added',
-        'node_count': len(blockchain.nodes),
-        'nodes': list(blockchain.nodes),
+        'message': 'New nodes have been added',
+        'total_nodes': list(blockchain.nodes),
     }
     return jsonify(response), 201
 
 
 @app.route('/sync-chain', methods=['GET'])
 def consensus() :
-    replaced = blockchain.resolveConflict()
+    neighbour_chains = blockchain.get_neighbour_chains()
+    if not neighbour_chains :
+        return jsonify({'message' : 'No neighbour chain is available'})
 
-    if replaced:
+    longest_chain = max(neighbour_chains, key=len)
+
+    if len(blockchain.chain) >= len(longest_chain) :
         response = {
-            'message': 'Our chain was replaced',
-            'new_chain': blockchain.chainJSONencode()
+            'message' : 'Chain is already up to date',
+            'chain' : blockchain.chainJSONencode()
         }
-    else:
+    else :
+        blockchain.chain = [blockchain.get_block_object_from_block_data(block) for block in longest_chain]
         response = {
-            'message': 'Our chain is authoritative',
-            'chain': blockchain.chainJSONencode()
+            'message' : 'Chain was replaced',
+            'chain' : blockchain.chainJSONencode()
         }
 
-    return jsonify(response), 200
+    return jsonify(response)
