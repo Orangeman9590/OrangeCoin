@@ -3,13 +3,66 @@ import json
 from textwrap import dedent
 from uuid import uuid4
 import jsonpickle
-from flask import Flask
+from flask import Flask, url_for
 from urllib.parse import urlparse
 from Crypto.PublicKey import RSA
 from Crypto.Signature import *
-from time import time
 from datetime import datetime
 import requests
+
+
+
+
+
+class Block(object) :
+    def __init__(self, transactions, time, index) :
+        self.index = index
+        self.transactions = transactions
+        self.time = time
+        self.prev = ''
+        self.nonce = 0
+        self.orange = self.calculate_orange()
+        self.hash = self.calculate_hash()
+
+    def calculate_orange(self):
+        return '24 hr'
+
+    def calculate_hash(self):
+        hash_transactions = ''
+        for transaction in self.transactions:
+            hash_transactions += transaction.hash
+        hash_string = str(self.time) + hash_transactions + self.orange + self.prev + str(self.nonce)
+        hash_encoded = json.dumps(hash_string, sort_keys=True).encode()
+        return hashlib.sha256(hash_encoded).hexdigest()
+    def mine_block(self, difficulty):
+        arr = []
+        for i in range(0, difficulty):
+            arr.append(i)
+
+        arr_str = map(str, arr)
+        hash_puzzle = ''.join(arr_str)
+        while self.hash[0:difficulty] != hash_puzzle:
+            self.nonce +=1
+            self.hash = self.calculate_hash()
+            print('Nonce:', self.nonce)
+            print('Hash Attempt:', self.hash)
+            print('Hash We Want:', hash_puzzle, '...')
+            print('')
+
+
+        print('Block Mined, Proof of Work:', self.nonce)
+        return True
+
+    def hash_valid_transactions(self):
+        for i in range(0, len(self.transactions)):
+            transaction = self.transactions[i]
+            if not transaction.is_valid_transaction():
+                return False
+            return True
+
+    def JSON_encode(self):
+        return jsonpickle.encode(self)
+
 
 class Blockchain(object):
     def __init__(self):
@@ -27,29 +80,23 @@ class Blockchain(object):
         self.nodes.add(address)
         return True
 
-    def resolveConflict(self):
-        neigbours = self.nodes
-        newChain = None
-        max_length = len(self.chain)
-        for node in neigbours:
-            response = requests.get(f'http://{node}/chain')
+    def get_neighbour_chains(self) :
+        neighbour_chains = []
 
-            if response.status_code == 200:
-                length = response.json()['length']
-                chain = response.json()['chain']
+        for node_address in self.nodes :
+            resp = requests.get(node_address+'/chain').json()
+            chain = resp['chain']
+            neighbour_chains.append(chain)
+            print(neighbour_chains)
 
-                if length > max_length and self.isValidChain():
-                    max_length = length
-                    newChain = chain
+        return neighbour_chains
 
-        if newChain:
-            self.chain = self.chainJSONdecode(newChain)
-            print(self.chain)
-            return True
 
-        return False
     def mine_pending_transactions(self, miner):
         len_pt = len(self.pendingTransactions)
+        if (len_pt <= 1) :
+            print("Not enough transactions to mine! (Must be > 1)")
+            return False;
         for i in range(0, len_pt, self.blockSize):
             end = i + self.blockSize
             if i >= len_pt:
@@ -68,20 +115,25 @@ class Blockchain(object):
 
     def get_balance(self, person):
         balance = 100
-        for i in range(1, len(self.chain)):
-            block = self.chain[i]
-            try:
-                for j in range(0, len(block.transactions)):
-                    transaction = block.transactions[j]
-                    if(transaction.sender == person):
-                        balance -= int(transaction.amount)
-                        print(balance)
-                    if transaction.reciever == person:
-                        balance += int(transaction.amount)
-                        print(balance)
-            except AttributeError:
-                print('No Transaction')
-        return balance + 100
+        lenPT = len(self.pendingTransactions)
+        if (lenPT <= 1) :
+            print("Not enough transactions to mine! (Must be > 1)")
+            return False
+        else :
+            for i in range(1, len(self.chain)):
+                block = self.chain[i]
+                try:
+                    for j in range(0, len(block.transactions)):
+                        transaction = block.transactions[j]
+                        if(transaction.sender == person):
+                            balance -= int(transaction.amount)
+                            print(balance)
+                        if transaction.reciever == person:
+                            balance += int(transaction.amount)
+                            print(balance)
+                except AttributeError:
+                    print('No Transaction')
+            return balance + 100
 
 
     def add_transaction(self, sender, reciever, amount, key_string, sender_key):
@@ -149,6 +201,7 @@ class Blockchain(object):
             blockJSON['time'] = block.time
             blockJSON['nonce'] = block.nonce
             blockJSON['orange'] = block.orange
+            blockJSON['length'] = int(len(self.chain))
 
             transactionsJSON = []
             tJSON = {}
@@ -186,57 +239,14 @@ class Blockchain(object):
             chain.append(block);
         return chain;
 
+    def get_block_object_from_block_data(self, block_data):
+        return Block(
+            block_data['index'],
+            block_data['prev'],
+            block_data['transactions'])
 
 
 
-class Block(object) :
-    def __init__(self, transactions, time, index) :
-        self.index = index
-        self.transactions = transactions
-        self.time = time
-        self.prev = ''
-        self.nonce = 0
-        self.orange = self.calculate_orange()
-        self.hash = self.calculate_hash()
-
-    def calculate_orange(self):
-        return '24 hr'
-
-    def calculate_hash(self):
-        hash_transactions = ''
-        for transaction in self.transactions:
-            hash_transactions += transaction.hash
-        hash_string = str(self.time) + hash_transactions + self.orange + self.prev + str(self.nonce)
-        hash_encoded = json.dumps(hash_string, sort_keys=True).encode()
-        return hashlib.sha256(hash_encoded).hexdigest()
-    def mine_block(self, difficulty):
-        arr = []
-        for i in range(0, difficulty):
-            arr.append(i)
-
-        arr_str = map(str, arr)
-        hash_puzzle = ''.join(arr_str)
-        while self.hash[0:difficulty] != hash_puzzle:
-            self.nonce +=1
-            self.hash = self.calculate_hash()
-            print('Nonce:', self.nonce)
-            print('Hash Attempt:', self.hash)
-            print('Hash We Want:', hash_puzzle, '...')
-            print('')
-
-
-        print('Block Mined, Proof of Work:', self.nonce)
-        return True
-
-    def hash_valid_transactions(self):
-        for i in range(0, len(self.transactions)):
-            transaction = self.transactions[i]
-            if not transaction.is_valid_transaction():
-                return False
-            return True
-
-    def JSON_encode(self):
-        return jsonpickle.encode(self)
 
 
 
@@ -248,10 +258,10 @@ class Transaction(object) :
         self.time = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
         self.hash = self.calculate_hash()
 
-    def calculate_hash(self):
-        hash_string = self.sender + self.reciever + str(self.amount) + str(self.time)
-        hash_encoded = json.dumps(hash_string, sort_keys=True).encode()
-        return hashlib.sha256(hash_encoded).hexdigest()
+    def calculate_hash(self) :
+        hashString = self.sender + self.reciever + str(self.amount) + str(self.time)
+        hashEncoded = json.dumps(hashString, sort_keys=True).encode()
+        return hashlib.sha256(hashEncoded).hexdigest()
 
     def is_valid_transaction(self):
         if self.hash != self.calculate_hash():
@@ -278,4 +288,3 @@ class Transaction(object) :
         self.signature = 'made'
         print('Made Signature')
         return True
-
