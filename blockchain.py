@@ -3,6 +3,7 @@ import json
 from textwrap import dedent
 from uuid import uuid4
 import jsonpickle
+import flask
 from flask import Flask, url_for
 from urllib.parse import urlparse
 from Crypto.PublicKey import RSA
@@ -82,14 +83,32 @@ class Blockchain(object):
 
     def get_neighbour_chains(self) :
         neighbour_chains = []
+        newChain = None
+
 
         for node_address in self.nodes :
             resp = requests.get(node_address+'/chain').json()
+
+            max_length = len(self.chain)
             chain = resp['chain']
             neighbour_chains.append(chain)
+            longest_chain = max(neighbour_chains, key=len)
             print(neighbour_chains)
 
-        return neighbour_chains
+            if max_length >= len(longest_chain) :
+                response = {
+                    'message' : 'Chain is already up to date',
+                    'chain' : self.chainJSONencode()
+                }
+                return flask.jsonify(response)
+            else :
+                max_length = longest_chain
+                newChain = chain
+
+        if newChain :
+            self.chain = self.chainJSONdecode(newChain)
+            return self.chain
+        return False
 
 
     def mine_pending_transactions(self, miner):
@@ -288,3 +307,4 @@ class Transaction(object) :
         self.signature = 'made'
         print('Made Signature')
         return True
+
