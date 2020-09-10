@@ -67,22 +67,4 @@ def register_nodes():
 
 @app.route('/sync-chain', methods=['GET'])
 def consensus() :
-    neighbour_chains = blockchain.get_neighbour_chains()
-    if not neighbour_chains :
-        return jsonify({'message' : 'No neighbour chain is available'})
-
-    longest_chain = max(neighbour_chains, key=len)
-
-    if len(blockchain.chain) >= len(longest_chain) :
-        response = {
-            'message' : 'Chain is already up to date',
-            'chain' : blockchain.chainJSONencode()
-        }
-    else :
-        blockchain.chain = [blockchain.get_block_object_from_block_data(block) for block in longest_chain]
-        response = {
-            'message' : 'Chain was replaced',
-            'chain' : blockchain.chainJSONencode()
-        }
-
-    return jsonify(response)
+    blockchain.get_neighbour_chains()
