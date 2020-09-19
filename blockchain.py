@@ -95,7 +95,7 @@ class Blockchain(object):
             longest_chain = max(neighbour_chains, key=len)
             print(neighbour_chains)
 
-            if max_length >= len(longest_chain) :
+            if max_length >= len(longest_chain):
                 response = {
                     'message' : 'Chain is already up to date',
                     'chain' : self.chainJSONencode()
@@ -104,11 +104,12 @@ class Blockchain(object):
             else :
                 max_length = longest_chain
                 newChain = chain
+                print(self.chainJSONdecode(newChain))
 
-        if newChain :
-            self.chain = self.chainJSONdecode(newChain)
-            return self.chain
-        return False
+                if newChain :
+                    self.chain = self.chainJSONdecode(newChain)
+                    return self.chain
+            return False
 
 
     def mine_pending_transactions(self, miner):
@@ -186,10 +187,10 @@ class Blockchain(object):
         for i in range(1, len(self.chain)) :
             b1 = self.chain[i - 1]
             b2 = self.chain[i]
-            if not b2.hasValidTransactions() :
+            if not b2.hash_valid_transactions() :
                 print("error 3")
                 return False
-            if b2.hash != b2.calculateHash() :
+            if b2.hash != b2.calculate_hash() :
                 print("error 4")
                 return False
             if b2.prev != b1.hash :
