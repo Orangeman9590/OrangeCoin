@@ -27,9 +27,10 @@ app = Flask(__name__)
 
 @app.route('/create-transaction', methods=['POST'])
 def create_transaction():
-    sender = input('Who are you: ')
-    reciever = input('Who Would You Like To Send To: ')
-    amount = input('How Much OrangeCoin are you Sending: ')
+    transaction_data = request.get_json()
+    sender = transaction_data.get('sender')
+    reciever = transaction_data.get('reciever')
+    amount =  transaction_data.get('amount')
 
     index = blockchain.add_transaction(sender=sender, reciever=reciever,amount=amount,key_string=key,sender_key=key)
     response = {'message': f'Transaction will be added to Block {index}'}
@@ -51,12 +52,10 @@ def get_full_chain() :
 
 @app.route('/register-node', methods=['POST'])
 def register_nodes():
-    nodes = input('What address would you like to register as a node: ')
-    if nodes is None:
+    node_data = request.get_json()
+    blockchain.register_node(node_data.get('address'))
+    if node_data is None:
         return "Error: Please supply a valid list of nodes", 400
-
-
-    blockchain.register_node(nodes)
 
     response = {
         'message': 'New nodes have been added',
@@ -68,3 +67,4 @@ def register_nodes():
 @app.route('/sync-chain', methods=['GET'])
 def consensus() :
     blockchain.get_neighbour_chains()
+
