@@ -10,7 +10,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 port = input('What port would you like to run on: ')
 os.system('start cmd /c python runhost.py -p ' + port)
-time.sleep(40)
+time.sleep(50)
 clear = lambda: os.system('cls')
 
 
@@ -25,6 +25,7 @@ def create_transaction(server, data) :
 
 
 def mine_block(server) :
+    print('Mining Pending Transactions...')
     requests.get(server + '/mine').json()
     print("On Server {}: Block has been mined successfully!\\n".format(server))
 
