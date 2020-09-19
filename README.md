@@ -1,4 +1,6 @@
 # OrangeCoin
+[![Run on Repl.it](https://repl.it/badge/github/Orangeman9590/OrangeCoin)](https://repl.it/github/Orangeman9590/OrangeCoin)
+
 
 Simple Decentralized Cryptocurrency with no value(IN DEVELOPMENT)
 
