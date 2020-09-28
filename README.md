@@ -23,4 +23,5 @@ Simple Decentralized Cryptocurrency with no value(IN DEVELOPMENT)
 📲 Contact
 --------------
 [Discord] ```orange#9770```
+
 [Telegram] ```@orange_man```
